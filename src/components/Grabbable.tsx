@@ -34,12 +34,18 @@ export const Grabbable: React.FC<GrabbableProps> = ({ children, id, initialPosit
     // 3. Move Logic (if grabbed)
     if (isCurrentlyGrabbedByMe) {
       if (isGrabbing) {
-        // Smoothly follow hand
-        groupRef.current.position.lerp(hand3DPosition, 0.2);
+        // High-responsiveness follow for mobile
+        groupRef.current.position.lerp(hand3DPosition, 0.4);
+        groupRef.current.scale.lerp(new THREE.Vector3(1.1, 1.1, 1.1), 0.1);
       } else {
         // Release
         setGrabbedObjectId(null);
+        groupRef.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.2);
       }
+    } else {
+      // Normal scale
+      const targetScale = isHovered ? 1.05 : 1;
+      groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
     }
   });
 
@@ -47,15 +53,16 @@ export const Grabbable: React.FC<GrabbableProps> = ({ children, id, initialPosit
     <group ref={groupRef} position={initialPosition}>
       {children}
       
-      {/* Interaction Feedback: Glow/Highlight Outline */}
+      {/* Interaction Feedback: Holographic Pulse */}
       {(isHovered || isCurrentlyGrabbedByMe) && (
-        <mesh scale={[1.2, 1.2, 1.2]}>
-          <sphereGeometry args={[0.4, 16, 16]} />
+        <mesh scale={[1.3, 1.3, 1.3]}>
+          <sphereGeometry args={[0.5, 32, 32]} />
           <meshBasicMaterial 
             color={isCurrentlyGrabbedByMe ? "#ff00d9" : "#00f2ff"} 
             transparent 
-            opacity={0.15} 
+            opacity={0.1} 
             side={THREE.BackSide}
+            wireframe
           />
         </mesh>
       )}

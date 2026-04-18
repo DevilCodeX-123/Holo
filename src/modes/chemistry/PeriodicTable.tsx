@@ -22,6 +22,18 @@ const ELEMENTS = [
   { symbol: 'S', name: 'Sulfur', mass: 32.06, group: 'nonmetal' },
   { symbol: 'Cl', name: 'Chlorine', mass: 35.45, group: 'halogen' },
   { symbol: 'Ar', name: 'Argon', mass: 39.948, group: 'noble' },
+  { symbol: 'K', name: 'Potassium', mass: 39.098, group: 'alkali' },
+  { symbol: 'Ca', name: 'Calcium', mass: 40.078, group: 'alkaline' },
+  { symbol: 'Fe', name: 'Iron', mass: 55.845, group: 'transition' },
+  { symbol: 'Cu', name: 'Copper', mass: 63.546, group: 'transition' },
+  { symbol: 'Zn', name: 'Zinc', mass: 65.38, group: 'transition' },
+  { symbol: 'Ag', name: 'Silver', mass: 107.87, group: 'transition' },
+  { symbol: 'Au', name: 'Gold', mass: 196.97, group: 'transition' },
+  { symbol: 'Hg', name: 'Mercury', mass: 200.59, group: 'transition' },
+  { symbol: 'Pb', name: 'Lead', mass: 207.2, group: 'post-transition' },
+  { symbol: 'I', name: 'Iodine', mass: 126.9, group: 'halogen' },
+  { symbol: 'Br', name: 'Bromine', mass: 79.9, group: 'halogen' },
+  { symbol: 'Xe', name: 'Xenon', mass: 131.29, group: 'noble' },
 ];
 
 interface PeriodicTableProps {

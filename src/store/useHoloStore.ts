@@ -51,6 +51,9 @@ interface HoloState {
     temperature: number
   }
   setChemistryParam: (key: keyof HoloState['chemistryParams'], value: number) => void
+
+  zoom: number
+  setZoom: (zoom: number) => void
 }
 
 export const useHoloStore = create<HoloState>((set) => ({
@@ -84,6 +87,9 @@ export const useHoloStore = create<HoloState>((set) => ({
   setHandPosition: (handPosition) => set({ handPosition }),
   hand3DPosition: new THREE.Vector3(),
   setHand3DPosition: (hand3DPosition) => set({ hand3DPosition }),
+
+  zoom: 5,
+  setZoom: (zoom) => set({ zoom }),
 
   aiExplanation: "Welcome to HoloLab. Select a subject and topic to begin your AR discovery.",
   setAiExplanation: (aiExplanation) => set({ aiExplanation }),

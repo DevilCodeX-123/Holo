@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useHoloStore } from './store/useHoloStore'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,18 +15,44 @@ import { getSimulationExplanation } from './engine/ai/geminiService'
 
 const App: React.FC = () => {
   const { 
-    mode, isLanding,
+    mode, setMode, isLanding, setIsLanding,
     aiExplanation, setAiExplanation,
     isAiLoading, setIsAiLoading,
-    selectedItems
+    selectedItems, zoom
   } = useHoloStore()
 
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
 
+  // URL-based routing logic
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.replace('/', '');
+      if (path === 'chemistry' || path === 'physics') {
+        setMode(path as any);
+        setIsLanding(false);
+      } else {
+        setIsLanding(true);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    handlePopState(); // Initial check
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [setMode, setIsLanding]);
+
+  const navigateTo = (newMode: string | 'home') => {
+    if (newMode === 'home') {
+      setIsLanding(true);
+      window.history.pushState({}, '', '/');
+    } else {
+      setMode(newMode as 'chemistry' | 'physics');
+      setIsLanding(false);
+      window.history.pushState({}, '', `/${newMode}`);
+    }
+  };
+
   // Trigger AI explanation when mode changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (isLanding) return;
-    
     const triggerAI = async () => {
       setIsAiLoading(true)
       const explanation = await getSimulationExplanation(mode, `User switched to ${mode} mode.`)
@@ -34,7 +60,7 @@ const App: React.FC = () => {
       setIsAiLoading(false)
     }
     triggerAI()
-  }, [mode, isLanding])
+  }, [mode, isLanding, setAiExplanation, setIsAiLoading])
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black text-white">
@@ -49,6 +75,38 @@ const App: React.FC = () => {
         {isLanding && <LandingScreen />}
       </AnimatePresence>
 
+      {/* --- SIDEBAR NAVIGATION --- */}
+      {!isLanding && (
+        <motion.div 
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="absolute left-6 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-4"
+        >
+          <button 
+            onClick={() => navigateTo('chemistry')}
+            className={`w-14 h-14 rounded-2xl glass holo-border flex items-center justify-center transition-all pointer-events-auto ${mode === 'chemistry' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
+            title="Chemistry Lab"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.022.547l-2.387 2.387a2 2 0 001.414 3.414h15.828a2 2 0 001.414-3.414l-2.387-2.387zM15 11V5a2 2 0 00-2-2H11a2 2 0 00-2 2v6m6 0a2 2 0 012 2v6H7v-6a2 2 0 012-2m6 0h-6" /></svg>
+          </button>
+          <button 
+            onClick={() => navigateTo('physics')}
+            className={`w-14 h-14 rounded-2xl glass holo-border flex items-center justify-center transition-all pointer-events-auto ${mode === 'physics' ? 'bg-purple-500/20 text-purple-400' : 'text-zinc-500 hover:text-white'}`}
+            title="Physics Lab"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </button>
+          <div className="h-px bg-white/10 mx-4 my-2" />
+          <button 
+            onClick={() => navigateTo('home')}
+            className="w-14 h-14 rounded-2xl glass holo-border flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/5 transition-all pointer-events-auto"
+            title="Home"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+          </button>
+        </motion.div>
+      )}
+
       {/* --- MODAL LAYER: Periodic Table / Physics Menu --- */}
       <AnimatePresence>
         {isMenuOpen && (
@@ -62,7 +120,7 @@ const App: React.FC = () => {
 
       {/* --- 3D LAYER: Three.js Scene --- */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        <Canvas shadows camera={{ position: [0, 0, 5], fov: 45 }} gl={{ alpha: true }}>
+        <Canvas shadows camera={{ position: [0, 0, zoom || 5], fov: 45 }} gl={{ alpha: true }}>
           <ambientLight intensity={0.5} />
           <pointLight position={[10, 10, 10]} />
           <HandOverlay />
@@ -76,53 +134,39 @@ const App: React.FC = () => {
 
       {/* --- UI LAYER: HUD Overlays --- */}
       {!isLanding && (
-        <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 md:p-6">
-          
-          {/* Top HUD: AI Intelligence */}
-          <div className="flex justify-between items-start gap-4">
+        <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-6">
+          <div className="flex justify-end items-start gap-4">
             <motion.div 
-              initial={{ x: -50, opacity: 0 }}
+              initial={{ x: 50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              className="glass holo-border w-full max-w-[280px] md:max-w-80 rounded-xl md:rounded-2xl p-3 md:p-4 pointer-events-auto"
+              className="glass holo-border w-80 rounded-2xl p-4 pointer-events-auto"
             >
-              <div className="flex items-center gap-2 text-holo-primary mb-1 md:mb-2">
-                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-holo-primary animate-pulse" />
-                <h2 className="font-bold tracking-widest uppercase text-[8px] md:text-[10px]">HoloAI</h2>
+              <div className="flex items-center gap-2 text-holo-primary mb-2">
+                <div className="w-2 h-2 rounded-full bg-holo-primary animate-pulse" />
+                <h2 className="font-bold tracking-widest uppercase text-[10px]">HoloAI Assistant</h2>
               </div>
-              <p className="text-[9px] md:text-xs text-zinc-300 leading-relaxed italic line-clamp-3 md:line-clamp-none">
-                {isAiLoading ? "Analyzing..." : aiExplanation}
+              <p className="text-xs text-zinc-300 leading-relaxed italic">
+                {isAiLoading ? "Syncing AR coordinates..." : aiExplanation}
               </p>
-            </motion.div>
-
-            {/* Mode Indicator */}
-            <motion.div 
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="glass holo-border px-3 md:px-6 py-1.5 md:py-2 rounded-full flex items-center gap-2 md:gap-3"
-            >
-              <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${mode === 'chemistry' ? 'bg-cyan-400' : 'bg-purple-400'}`} />
-              <span className="text-[8px] md:text-[10px] uppercase font-bold tracking-widest">{mode}</span>
             </motion.div>
           </div>
 
-          {/* Bottom HUD: Selection & Tray */}
-          <div className="flex flex-col gap-2 md:gap-4 items-center">
-            {/* Selection Tray */}
+          <div className="flex flex-col gap-4 items-center pl-20">
             <motion.div 
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="flex flex-col md:flex-row gap-2 md:gap-4 items-center w-full max-w-4xl px-4"
+              className="flex gap-4 items-center w-full max-w-4xl"
             >
-              <div className="glass holo-border h-12 md:h-16 px-4 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-3 md:gap-4 flex-1 min-w-0 w-full overflow-x-auto custom-scrollbar">
+              <div className="glass holo-border h-16 px-6 rounded-2xl flex items-center gap-4 flex-1 overflow-x-auto custom-scrollbar">
                 {selectedItems.length === 0 ? (
-                  <span className="text-zinc-500 text-[8px] md:text-[10px] uppercase tracking-widest whitespace-nowrap">Empty Tray</span>
+                  <span className="text-zinc-500 text-[10px] uppercase tracking-widest">Workspace Empty</span>
                 ) : (
                   selectedItems.map((item, idx) => (
                     <motion.div
                       key={`${item}-${idx}`}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[8px] md:text-[10px] font-bold text-holo-primary"
+                      className="flex-shrink-0 w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-holo-primary"
                     >
                       {item}
                     </motion.div>
@@ -130,21 +174,19 @@ const App: React.FC = () => {
                 )}
               </div>
               
-              {/* Trigger Button (Holographic) */}
               <button 
                 onClick={() => setIsMenuOpen(true)}
-                className="glass holo-border h-12 md:h-16 px-6 md:px-8 rounded-xl md:rounded-2xl flex flex-col justify-center items-center gap-0.5 group transition-all hover:bg-white/10 pointer-events-auto whitespace-nowrap"
+                className="glass holo-border h-16 px-8 rounded-2xl flex flex-col justify-center items-center gap-0.5 group transition-all hover:bg-white/10 pointer-events-auto"
               >
-                <span className="text-[6px] md:text-[8px] text-zinc-500 uppercase font-bold tracking-[0.2em]">Open</span>
-                <span className="text-[8px] md:text-[10px] text-holo-primary font-bold uppercase tracking-widest">
-                  {mode === 'chemistry' ? 'Periodic Table' : 'Physics Topics'}
+                <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-[0.2em]">Open Library</span>
+                <span className="text-[10px] text-holo-primary font-bold uppercase tracking-widest">
+                  {mode === 'chemistry' ? 'Elements' : 'Modules'}
                 </span>
               </button>
             </motion.div>
 
-            {/* Instruction Overlay */}
-            <div className="text-[6px] md:text-[8px] text-zinc-600 uppercase tracking-[0.2em] md:tracking-[0.4em] mb-1 md:mb-2 bg-black/20 px-4 py-1 rounded-full backdrop-blur-sm">
-              Pinch to Select • Grab to Manipulate
+            <div className="text-[8px] text-zinc-600 uppercase tracking-[0.4em] bg-black/20 px-6 py-1.5 rounded-full backdrop-blur-sm">
+              AR Interface Active • Proximity Zoom Enabled
             </div>
           </div>
         </div>

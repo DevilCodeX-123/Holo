@@ -63,8 +63,12 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({ onClose }) => {
               key={topic.id}
               onMouseEnter={() => setHoveredTopic(topic.id)}
               onMouseLeave={() => setHoveredTopic(null)}
-              onClick={() => { setSelectedTopic(topic.id); onClose(); }} // Support click
-              className={`relative rounded-2xl md:rounded-3xl border-2 p-4 md:p-6 flex flex-col gap-3 md:gap-4 transition-all duration-300 pointer-events-auto cursor-pointer md:cursor-none overflow-hidden ${
+              onClick={() => { 
+                console.log("Selected topic:", topic.id);
+                setSelectedTopic(topic.id); 
+                onClose(); 
+              }}
+              className={`relative rounded-2xl md:rounded-3xl border-2 p-4 md:p-6 flex flex-col gap-3 md:gap-4 transition-all duration-300 pointer-events-auto cursor-pointer overflow-hidden ${
                 hoveredTopic === topic.id 
                   ? 'border-white scale-[1.02] md:scale-105 z-20 shadow-[0_0_40px_rgba(168,85,247,0.2)] bg-white/5' 
                   : 'border-white/5 opacity-70'

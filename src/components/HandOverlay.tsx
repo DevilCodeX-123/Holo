@@ -15,12 +15,13 @@ export const HandOverlay = () => {
     groupRef.current?.children.forEach((child, i) => {
       const landmark = landmarks[i]
       if (landmark) {
-        const x = (0.5 - landmark.x) * 10
-        const y = (0.5 - landmark.y) * 6
-        const z = -landmark.z * 5
+        // Adjust for mobile aspect ratios and standard distance
+        const x = (0.5 - landmark.x) * 12 // Slightly wider range
+        const y = (0.5 - landmark.y) * 8  // Slightly taller range
+        const z = (0.5 - landmark.z) * 5  // Centered depth
         child.position.set(x, y, z)
         
-        // Sync index finger tip (landmark 8) to store for global interaction
+        // Sync index finger tip (landmark 8)
         if (i === 8) {
           setHand3DPosition(new THREE.Vector3(x, y, z))
         }
