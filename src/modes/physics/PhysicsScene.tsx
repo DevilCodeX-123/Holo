@@ -14,7 +14,7 @@ const TEXTURES = {
 const Planet = ({ id, radius, textureUrl, position, scale = 1, rotationSpeed = 0.005 }: any) => {
   let texture;
   try {
-    texture = useTexture(textureUrl);
+    texture = useTexture(textureUrl) as THREE.Texture;
   } catch (e) {
     console.error("Texture load failed for", id);
   }
