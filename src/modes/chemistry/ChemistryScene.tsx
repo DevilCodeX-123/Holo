@@ -78,7 +78,7 @@ const Atom = ({ symbol, position }: { symbol: string, position: [number, number,
 };
 
 export const ChemistryScene: React.FC = () => {
-  const { selectedItems, chemistryParams, setChemistryParam } = useHoloStore();
+  const { selectedItems, activeElements, chemistryParams, setChemistryParam } = useHoloStore();
   const [reaction, setReaction] = useState<string | null>(null);
 
   useFrame(() => {
@@ -94,11 +94,20 @@ export const ChemistryScene: React.FC = () => {
 
       <Text position={[0, 4, -5]} fontSize={0.7} color="#00f2ff" font="/fonts/Inter-Bold.woff">MOLECULAR SYNTHESIS</Text>
       
-      {selectedItems.map((symbol, idx) => (
-        <Atom key={`${symbol}-${idx}`} symbol={symbol} position={[(idx - (selectedItems.length - 1) / 2) * 2.5, 0, 0]} />
+      {/* Render base selected items in a visible grid spread across the scene */}
+      {selectedItems.map((symbol, idx) => {
+        const col = idx % 5;
+        const row = Math.floor(idx / 5);
+        const pos: [number, number, number] = [(col - 2) * 2.5, 1.5 - row * 2.5, 0];
+        return <Atom key={`base-${symbol}-${idx}`} symbol={symbol} position={pos} />;
+      })}
+
+      {/* Render dynamically placed elements */}
+      {activeElements?.map((el) => (
+        <Atom key={el.id} symbol={el.symbol} position={el.position} />
       ))}
 
-      {selectedItems.length === 0 && (
+      {selectedItems.length === 0 && activeElements?.length === 0 && (
         <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
           <Text position={[0, 0, 0]} fontSize={0.3} color="#7000ff">INITIALIZE ELEMENTS VIA TABLE</Text>
         </Float>

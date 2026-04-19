@@ -25,18 +25,42 @@ interface HoloState {
   setIsHandActive: (active: boolean) => void
   isGrabbing: boolean
   setIsGrabbing: (isGrabbing: boolean) => void
+  isHovering: boolean
+  setIsHovering: (isHovering: boolean) => void
   grabbedObjectId: string | null
   setGrabbedObjectId: (id: string | null) => void
   handPosition: { x: number, y: number, z: number }
   setHandPosition: (pos: { x: number, y: number, z: number }) => void
+  preciseLandmarks: { x: number, y: number, z: number }[] | null
+  setPreciseLandmarks: (landmarks: { x: number, y: number, z: number }[] | null) => void
   hand3DPosition: THREE.Vector3
   setHand3DPosition: (pos: THREE.Vector3) => void
+  // Multi-hand tracking
+  allHands: Array<{
+    handIdx: number
+    landmarks: { x: number, y: number, z: number }[]
+    indexTip: { x: number, y: number, z: number }
+    thumbTip: { x: number, y: number, z: number }
+    isPinching: boolean
+    isFist: boolean
+  }>
+  setAllHands: (hands: any[]) => void
 
   // AI State
   aiExplanation: string
   setAiExplanation: (text: string) => void
   isAiLoading: boolean
   setIsAiLoading: (loading: boolean) => void
+
+  // Active elements in the scene
+  activeElements: Array<{ id: string, symbol: string, position: [number, number, number] }>
+  addActiveElement: (symbol: string, position: [number, number, number]) => void
+  removeActiveElement: (id: string) => void
+  updateElementPosition: (id: string, position: [number, number, number]) => void
+
+  // Dragging state
+  draggedElement: string | null
+  setDraggedElement: (symbol: string | null) => void
 
   // Simulation parameters
   physicsParams: {
@@ -81,15 +105,35 @@ export const useHoloStore = create<HoloState>((set) => ({
   setIsHandActive: (isHandActive) => set({ isHandActive }),
   isGrabbing: false,
   setIsGrabbing: (isGrabbing) => set({ isGrabbing }),
+  isHovering: false,
+  setIsHovering: (isHovering) => set({ isHovering }),
   grabbedObjectId: null,
   setGrabbedObjectId: (grabbedObjectId) => set({ grabbedObjectId }),
   handPosition: { x: 0, y: 0, z: 0 },
   setHandPosition: (handPosition) => set({ handPosition }),
+  preciseLandmarks: null,
+  setPreciseLandmarks: (preciseLandmarks) => set({ preciseLandmarks }),
   hand3DPosition: new THREE.Vector3(),
   setHand3DPosition: (hand3DPosition) => set({ hand3DPosition }),
+  allHands: [],
+  setAllHands: (allHands) => set({ allHands }),
 
   zoom: 5,
   setZoom: (zoom) => set({ zoom }),
+
+  activeElements: [],
+  addActiveElement: (symbol, position) => set((state) => ({
+    activeElements: [...state.activeElements, { id: Math.random().toString(36).substr(2, 9), symbol, position }]
+  })),
+  removeActiveElement: (id) => set((state) => ({
+    activeElements: state.activeElements.filter(el => el.id !== id)
+  })),
+  updateElementPosition: (id, position) => set((state) => ({
+    activeElements: state.activeElements.map(el => el.id === id ? { ...el, position } : el)
+  })),
+
+  draggedElement: null,
+  setDraggedElement: (draggedElement) => set({ draggedElement }),
 
   aiExplanation: "Welcome to HoloLab. Select a subject and topic to begin your AR discovery.",
   setAiExplanation: (aiExplanation) => set({ aiExplanation }),

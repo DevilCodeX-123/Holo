@@ -12,16 +12,24 @@ import { PhysicsScene } from './modes/physics/PhysicsScene'
 import { PeriodicTable } from './modes/chemistry/PeriodicTable'
 import { TopicSelector } from './modes/physics/TopicSelector'
 import { getSimulationExplanation } from './engine/ai/geminiService'
+import { useAirInteractions } from './hooks/useAirInteractions'
 
 const App: React.FC = () => {
-  const { 
-    mode, setMode, isLanding, setIsLanding,
-    aiExplanation, setAiExplanation,
-    isAiLoading, setIsAiLoading,
-    selectedItems, zoom
-  } = useHoloStore()
+  const mode = useHoloStore(state => state.mode);
+  const setMode = useHoloStore(state => state.setMode);
+  const isLanding = useHoloStore(state => state.isLanding);
+  const setIsLanding = useHoloStore(state => state.setIsLanding);
+  const aiExplanation = useHoloStore(state => state.aiExplanation);
+  const setAiExplanation = useHoloStore(state => state.setAiExplanation);
+  const isAiLoading = useHoloStore(state => state.isAiLoading);
+  const setIsAiLoading = useHoloStore(state => state.setIsAiLoading);
+  const selectedItems = useHoloStore(state => state.selectedItems);
+  const zoom = useHoloStore(state => state.zoom);
 
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
+
+  // Initialize Air Interactions (Gestures -> Click)
+  useAirInteractions()
 
   // URL-based routing logic
   useEffect(() => {
@@ -118,11 +126,17 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* --- 3D LAYER: Three.js Scene --- */}
+      {/* --- 3D LAYER: Three.js Scene overlaid on camera --- */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        <Canvas shadows camera={{ position: [0, 0, zoom || 5], fov: 45 }} gl={{ alpha: true }}>
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} />
+        <Canvas
+          shadows
+          camera={{ position: [0, 0, 6], fov: 60 }}
+          gl={{ alpha: true, antialias: true }}
+          style={{ background: 'transparent' }}
+        >
+          <ambientLight intensity={0.8} />
+          <pointLight position={[5, 5, 5]} intensity={2} color="#00f2ff" />
+          <pointLight position={[-5, -5, 5]} intensity={1} color="#7000ff" />
           <HandOverlay />
           <Suspense fallback={null}>
             {!isLanding && (
@@ -166,7 +180,10 @@ const App: React.FC = () => {
                       key={`${item}-${idx}`}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="flex-shrink-0 w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-holo-primary"
+                      data-element={item}
+                      data-virtual-interact="true"
+                      className="flex-shrink-0 w-10 h-10 rounded-lg bg-white/5 border border-holo-primary/40 flex items-center justify-center text-[10px] font-bold text-holo-primary cursor-pointer pointer-events-auto hover:bg-holo-primary/20 transition-all"
+                      title={`Grab ${item} with pinch gesture`}
                     >
                       {item}
                     </motion.div>
