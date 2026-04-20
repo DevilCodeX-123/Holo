@@ -108,10 +108,11 @@ const StatsPanel = ({ planetId }: { planetId: string }) => {
 };
 
 export const PhysicsScene: React.FC = () => {
-  const { selectedTopic, physicsParams, setPhysicsParam } = useHoloStore()
+  const { selectedTopic, physicsParams, setPhysicsParam, zoom } = useHoloStore()
+  const sceneScale = zoom / 5;
 
   return (
-    <group>
+    <group scale={sceneScale}>
       <ambientLight intensity={0.8} />
       <pointLight position={[0, 0, 0]} intensity={3} color="#fff5d0" />
       <directionalLight position={[5, 5, 5]} intensity={1} />

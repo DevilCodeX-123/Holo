@@ -30,51 +30,65 @@ const HandSkeleton = ({ landmarks, isPinching }: {
   const groupRef = useRef<THREE.Group>(null)
   const aspect = window.innerWidth / window.innerHeight
 
+  // Generate bone meshes for all standard hand connections
+  const boneMeshes = CONNECTIONS.map(([startIdx, endIdx], i) => {
+    const start = landmarkTo3D(landmarks[startIdx], 60, 6, aspect)
+    const end = landmarkTo3D(landmarks[endIdx], 60, 6, aspect)
+    const mid = start.clone().lerp(end, 0.5)
+    const dist = start.distanceTo(end)
+    
+    return (
+      <mesh key={i} position={mid} lookAt={end}>
+        <cylinderGeometry args={[0.008, 0.008, dist, 8]} />
+        <meshBasicMaterial color="#00f2ff" transparent opacity={0.2} depthTest={false} />
+      </mesh>
+    )
+  })
+
   return (
     <group ref={groupRef}>
-      {/* Joints */}
+      {/* All 21 Joint Dots */}
       {landmarks.map((lm, i) => {
         const pos = landmarkTo3D(lm, 60, 6, aspect)
-        const isKey = [4, 8, 12, 16, 20].includes(i)  // Fingertips
-        const isThumb = i === 4
-        const isIndex = i === 8
-        const pinching = isPinching && (isThumb || isIndex)
+        const isTip = [4, 8, 12, 16, 20].includes(i)
+        const pulsing = isTip && isPinching && (i === 4 || i === 8)
+
         return (
-          <mesh key={i} position={pos}>
-            <sphereGeometry args={[isKey ? 0.07 : 0.04, 12, 12]} />
+          <mesh key={i} position={pos} renderOrder={1000}>
+            <sphereGeometry args={[isTip ? 0.04 : 0.02, 16, 16]} />
             <meshStandardMaterial
-              color={pinching ? '#ff6600' : isKey ? '#00f2ff' : '#ffffff'}
-              emissive={pinching ? '#ff3300' : isKey ? '#00f2ff' : '#00aaff'}
-              emissiveIntensity={pinching ? 3 : isKey ? 2 : 0.8}
+              color={pulsing ? '#ff6600' : isTip ? '#00f2ff' : '#0099ff'}
+              emissive={pulsing ? '#ff3300' : isTip ? '#00f2ff' : '#0099ff'}
+              emissiveIntensity={pulsing ? 15 : 2}
               transparent
-              opacity={0.9}
+              opacity={0.8}
+              depthTest={false}
+              depthWrite={false}
             />
           </mesh>
         )
       })}
 
-      {/* Bones (connections) */}
-      {CONNECTIONS.map(([a, b], ci) => {
-        const p1 = landmarkTo3D(landmarks[a], 60, 6, aspect)
-        const p2 = landmarkTo3D(landmarks[b], 60, 6, aspect)
-        const mid = p1.clone().add(p2).multiplyScalar(0.5)
-        const dir = p2.clone().sub(p1)
-        const len = dir.length()
-        const quat = new THREE.Quaternion()
-        quat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
-        return (
-          <mesh key={ci} position={mid} quaternion={quat}>
-            <cylinderGeometry args={[0.015, 0.015, len, 6]} />
-            <meshStandardMaterial
-              color="#00f2ff"
-              emissive="#00f2ff"
-              emissiveIntensity={1}
-              transparent
-              opacity={0.4}
-            />
+      {/* Bones */}
+      <group renderOrder={999}>
+        {boneMeshes}
+      </group>
+
+      {/* Pinch Pulse Effect */}
+      {isPinching && (
+        <group renderOrder={1001}>
+          <mesh position={
+             landmarkTo3D(landmarks[4], 60, 6, aspect).add(landmarkTo3D(landmarks[8], 60, 6, aspect)).multiplyScalar(0.5)
+          }>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshBasicMaterial color="#ff6600" transparent opacity={0.6} depthTest={false} />
           </mesh>
-        )
-      })}
+          <mesh position={landmarkTo3D(landmarks[8], 60, 6, aspect)}>
+            <ringGeometry args={[0.15, 0.18, 64]} />
+            <meshBasicMaterial color="#ff6600" transparent opacity={0.4} side={THREE.DoubleSide} depthTest={false} />
+          </mesh>
+        </group>
+      )}
     </group>
   )
 }
@@ -82,15 +96,9 @@ const HandSkeleton = ({ landmarks, isPinching }: {
 export const HandOverlay = () => {
   const allHands = useHoloStore(state => state.allHands)
   const isHandActive = useHoloStore(state => state.isHandActive)
-  const setHand3DPosition = useHoloStore(state => state.setHand3DPosition)
-  const aspect = window.innerWidth / window.innerHeight
-
+  
   useFrame(() => {
-    if (allHands.length > 0) {
-      const primary = allHands[0]
-      const pos3D = landmarkTo3D(primary.indexTip, 60, 6, aspect)
-      setHand3DPosition(pos3D)
-    }
+    // HandOverlay is purely visual and relies on GestureEngine for logic
   })
 
   if (!isHandActive || allHands.length === 0) return null

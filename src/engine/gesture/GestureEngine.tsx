@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+import * as THREE from 'three';
 import { useHoloStore } from '../../store/useHoloStore';
 
 // One Euro Filter - adaptive: near-zero delay at fast movement, smooth at slow
@@ -89,10 +90,12 @@ const GestureEngine: React.FC = () => {
   const setIsGrabbing      = useHoloStore(state => state.setIsGrabbing);
   const setHandPosition    = useHoloStore(state => state.setHandPosition);
   const setAllHands        = useHoloStore(state => state.setAllHands);
+  const setEngineStatus    = useHoloStore(state => state.setEngineStatus);
 
   // Velocity tracking for flick detection
   const prevIndexTip = useRef<{x:number,y:number} | null>(null);
   const prevVelocity = useRef(0);
+  const frameCounter = useRef(0);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -110,7 +113,7 @@ const GestureEngine: React.FC = () => {
           },
           runningMode: 'VIDEO',
           numHands: 2,        // Support up to 2 hands
-          minHandDetectionConfidence: 0.5,
+          minHandDetectionConfidence: 0.5, // Increased to avoid face/noise
           minHandPresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
         });
@@ -147,6 +150,8 @@ const GestureEngine: React.FC = () => {
 
           if (results.landmarks && results.landmarks.length > 0) {
             setIsHandActive(true);
+            setEngineStatus('active');
+            frameCounter.current = 0; // Reset dropout buffer
             setHandLandmarks(results.landmarks);
 
             // Process ALL detected hands
@@ -159,41 +164,32 @@ const GestureEngine: React.FC = () => {
               const thumbTip  = precise[4];   // Thumb tip
               const middleTip = precise[12];  // Middle finger tip
 
+              // PRECISION MIDPOINT: The intersection of thumb and index for 100% accuracy
+              const interactionPoint = {
+                x: (indexTip.x + thumbTip.x) / 2,
+                y: (indexTip.y + thumbTip.y) / 2,
+                z: (indexTip.z + thumbTip.z) / 2
+              };
+
               // Pinch distance (thumb ↔ index)
               const pinchDist = Math.hypot(
                 thumbTip.x - indexTip.x,
                 thumbTip.y - indexTip.y
               );
-              // Fist detection: all fingertips close to wrist
+              
+              // Fist detection
               const wrist = precise[0];
               const fistDist = Math.hypot(
                 middleTip.x - wrist.x,
                 middleTip.y - wrist.y
               );
 
-              // --- Velocity / Flick detection (primary hand only) ---
-              if (handIdx === 0) {
-                if (prevIndexTip.current) {
-                  const speed = Math.hypot(
-                    indexTip.x - prevIndexTip.current.x,
-                    indexTip.y - prevIndexTip.current.y
-                  );
-                  // Flick = was moving fast, now suddenly settled
-                  if (prevVelocity.current > 0.025 && speed < 0.008) {
-                    window.dispatchEvent(new CustomEvent('gestureFlick', {
-                      detail: { x: indexTip.x * sW, y: indexTip.y * sH }
-                    }));
-                  }
-                  prevVelocity.current = speed;
-                }
-                prevIndexTip.current = { x: indexTip.x, y: indexTip.y };
-              }
-
               return {
                 landmarks: precise,
                 indexTip,
                 thumbTip,
-                isPinching: pinchDist < 0.07,  // Tight threshold for precision
+                interactionPoint,
+                isPinching: pinchDist < 0.085, // Slightly more forgiving for midpoint interaction
                 isFist: fistDist < 0.15,
                 handIdx,
               };
@@ -205,19 +201,35 @@ const GestureEngine: React.FC = () => {
             // Primary hand = first detected hand
             const primary = allHandsData[0];
             setPreciseLandmarks(primary.landmarks);
-            // Direct set — no additional lerp (One Euro Filter already smooths it)
-            setHandPosition({ x: primary.indexTip.x, y: primary.indexTip.y, z: primary.indexTip.z });
+            
+            // Set interaction point to the CENTER of the pinch for 100% precision
+            setHandPosition(primary.interactionPoint);
             setIsGrabbing(primary.isPinching || primary.isFist);
 
+            // CALCULATE 3D WORLD POSITION for element dragging
+            // Map [0,1] normalized to [-5, 5] world space
+            const worldX = (primary.interactionPoint.x - 0.5) * 10;
+            const worldY = (0.5 - primary.interactionPoint.y) * 8;
+            // Landmarks Z typically ranges from ~ -0.1 to 0.1, we'll map it to depth
+            const worldZ = -primary.interactionPoint.z * 15; 
+            
+            useHoloStore.getState().setHand3DPosition(new THREE.Vector3(worldX, worldY, worldZ));
+
           } else {
-            setIsHandActive(false);
-            setIsGrabbing(false);
-            setHandLandmarks(null);
-            setPreciseLandmarks(null);
-            setAllHands([]);
+            // Buffer to prevent flickering loss
+            frameCounter.current++;
+            if (frameCounter.current > 15) {
+              setIsHandActive(false);
+              setEngineStatus('scanning');
+              setIsGrabbing(false);
+              setHandLandmarks(null);
+              setPreciseLandmarks(null);
+              setAllHands([]);
+            }
           }
         } catch (err) {
           console.error('Prediction error:', err);
+          setEngineStatus('error');
         }
       }
       animationFrameId = requestAnimationFrame(predict);

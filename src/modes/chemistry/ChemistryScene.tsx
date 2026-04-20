@@ -1,9 +1,11 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Text, Float, Html, ContactShadows } from '@react-three/drei'
+import { Text, Float, Html, ContactShadows, Ring } from '@react-three/drei'
 import * as THREE from 'three'
 import { useHoloStore } from '../../store/useHoloStore'
 import { Grabbable } from '../../components/Grabbable'
+import { QuantumAtom, SYMBOL_TO_Z } from './QuantumAtom'
+import { MolecularBond } from '../../components/MolecularBond'
 
 const ATOM_PROPERTIES: Record<string, { color: string, metalness: number, roughness: number, opacity: number, emissiveIntensity: number }> = {
   'H': { color: '#ffffff', metalness: 0.1, roughness: 1, opacity: 0.3, emissiveIntensity: 0.2 },
@@ -14,97 +16,108 @@ const ATOM_PROPERTIES: Record<string, { color: string, metalness: number, roughn
   'Fe': { color: '#8d9194', metalness: 0.9, roughness: 0.5, opacity: 1.0, emissiveIntensity: 0.1 },
 };
 
-const ParameterControl = ({ label, value, onIncrease, onDecrease, unit = "°C" }: any) => {
-  const intervalRef = useRef<any>(null);
-  const startChange = (action: () => void) => { action(); intervalRef.current = setInterval(action, 80); };
-  const stopChange = () => { if (intervalRef.current) clearInterval(intervalRef.current); };
 
-  return (
-    <Html transform distanceFactor={2.5} position={[-4, 1.5, 0]} rotation={[0, 0.4, 0]}>
-      <div className="glass holo-border p-4 rounded-3xl w-48 flex flex-col gap-3 pointer-events-auto backdrop-blur-xl">
-        <span className="text-[8px] uppercase font-black text-holo-primary tracking-[0.2em]">{label}</span>
-        <div className="flex justify-between items-center bg-white/10 p-2 rounded-2xl">
-          <button onPointerEnter={() => startChange(onDecrease)} onPointerLeave={stopChange} className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/20 transition-all text-xl flex items-center justify-center">-</button>
-          <span className="text-sm font-black font-mono text-white">{value}{unit}</span>
-          <button onPointerEnter={() => startChange(onIncrease)} onPointerLeave={stopChange} className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/20 transition-all text-xl flex items-center justify-center">+</button>
-        </div>
-      </div>
-    </Html>
-  );
-};
-
-const Atom = ({ symbol, position }: { symbol: string, position: [number, number, number] }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const coreRef = useRef<THREE.Mesh>(null);
-  const props = ATOM_PROPERTIES[symbol] || ATOM_PROPERTIES['H'];
+const Atom = ({ id, symbol, position }: { id: string, symbol: string, position: [number, number, number] }) => {
+  const Z = SYMBOL_TO_Z[symbol] ?? 1;
   
-  useFrame((state) => {
-    if (meshRef.current && coreRef.current) {
-      meshRef.current.rotation.y += 0.01;
-      coreRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 2) * 0.1);
-    }
-  });
-
   return (
-    <Grabbable id={`atom-${symbol}-${Math.random()}`} initialPosition={position}>
-      <mesh ref={meshRef} castShadow>
-        <sphereGeometry args={[0.5, 64, 64]} />
-        <meshStandardMaterial 
-          color={props.color} 
-          transparent={props.opacity < 1} 
-          opacity={props.opacity} 
-          roughness={props.roughness} 
-          metalness={props.metalness}
-          emissive={props.color}
-          emissiveIntensity={props.emissiveIntensity}
-        />
-        <Text position={[0, 0, 0.6]} fontSize={0.25} color="white" font="/fonts/Inter-Bold.woff">
-          {symbol}
-        </Text>
-      </mesh>
-      
-      <mesh ref={coreRef}>
-        <sphereGeometry args={[0.2, 32, 32]} />
-        <meshBasicMaterial color="white" />
-      </mesh>
-      
-      {props.opacity < 1 && (
-        <group rotation={[Math.PI / 4, 0, 0]}>
-          <mesh><torusGeometry args={[0.8, 0.01, 16, 100]} /><meshBasicMaterial color={props.color} transparent opacity={0.3} /></mesh>
-        </group>
-      )}
+    <Grabbable id={id} initialPosition={position}>
+      <QuantumAtom atomicNumber={Z} symbol={symbol} scale={0.6} />
+      <Text position={[0, -0.15, 0]} fontSize={0.03} color="#00f2ff" font="/fonts/Inter-Bold.woff" fillOpacity={0.6}>
+        {symbol}
+      </Text>
     </Grabbable>
   );
 };
 
 export const ChemistryScene: React.FC = () => {
-  const { selectedItems, activeElements, chemistryParams, setChemistryParam } = useHoloStore();
+  const { selectedItems, activeElements, bonds, chemistryParams, setChemistryParam, zoom } = useHoloStore();
   const [reaction, setReaction] = useState<string | null>(null);
 
+  const addBond = useHoloStore(state => state.addBond);
+  const removeBond = useHoloStore(state => state.removeBond);
+
   useFrame(() => {
-    if (selectedItems.includes('Na') && selectedItems.includes('Cl')) setReaction('IONIC BOND: NaCl (Salt)');
-    else if (selectedItems.includes('H') && selectedItems.includes('O')) setReaction('COVALENT BOND: H2O (Water)');
-    else setReaction(null);
+    // 1. DYNAMIC BONDING LOGIC: Check distances between all pairs of active atoms
+    for (let i = 0; i < activeElements.length; i++) {
+      for (let j = i + 1; j < activeElements.length; j++) {
+        const atomA = activeElements[i];
+        const atomB = activeElements[j];
+        const dist = new THREE.Vector3(...atomA.position).distanceTo(new THREE.Vector3(...atomB.position));
+
+        // Proximity threshold for bonding (e.g., 1.5 units)
+        const isBonded = bonds.some(b => 
+          (b.fromId === atomA.id && b.toId === atomB.id) || 
+          (b.fromId === atomB.id && b.toId === atomA.id)
+        );
+
+        if (dist < 1.5 && !isBonded) {
+          addBond(atomA.id, atomB.id);
+        } else if (dist > 2.5 && isBonded) {
+          // Break bond if pulled too far apart
+          const bondId = bonds.find(b => 
+            (b.fromId === atomA.id && b.toId === atomB.id) || 
+            (b.fromId === atomB.id && b.toId === atomA.id)
+          )?.id;
+          if (bondId) removeBond(bondId);
+        }
+      }
+    }
+
+    // 2. SYNTHESIS HUD LOGIC: Identify molecules based on active bonds
+    const activeSymbols = activeElements.map(el => el.symbol);
+    if (activeSymbols.includes('Na') && activeSymbols.includes('Cl') && bonds.length > 0) {
+      setReaction('IONIC SYNTHESIS: SODIUM CHLORIDE');
+    } else if (activeSymbols.includes('H') && activeSymbols.includes('O') && bonds.length >= 2) {
+      setReaction('COVALENT SYNTHESIS: DIHYDROGEN MONOXIDE');
+    } else if (activeSymbols.length >= 2 && bonds.length > 0) {
+      setReaction('MOLECULAR BOND ACTIVE');
+    } else {
+      setReaction(null);
+    }
   });
 
+  const sceneScale = zoom / 5; // Base zoom is 5
+
+  const [spawnPulse, setSpawnPulse] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleSpawn = () => {
+      setSpawnPulse(true);
+      const timer = setTimeout(() => setSpawnPulse(false), 1200);
+      return () => clearTimeout(timer);
+    };
+    window.addEventListener('atom_spawned', handleSpawn);
+    return () => window.removeEventListener('atom_spawned', handleSpawn);
+  }, []);
+
   return (
-    <group>
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[5, 5, 5]} intensity={1.5} />
+    <group scale={sceneScale}>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 10, 5]} intensity={1.0} />
 
-      <Text position={[0, 4, -5]} fontSize={0.7} color="#00f2ff" font="/fonts/Inter-Bold.woff">MOLECULAR SYNTHESIS</Text>
+      {/* Arrival Pulse Beacon */}
+      {spawnPulse && (
+        <group position={[0, 0, 0]}>
+          <Ring args={[0.01, 2, 64]}>
+            <meshBasicMaterial color="#00f2ff" transparent opacity={0.3} depthWrite={false} />
+          </Ring>
+          <Ring args={[1.8, 2, 64]}>
+            <meshBasicMaterial color="#00f2ff" transparent opacity={0.1} depthWrite={false} />
+          </Ring>
+        </group>
+      )}
+
+      <Text position={[0, 2.5, -5]} fontSize={0.3} color="#00f2ff" font="/fonts/Inter-Bold.woff" fillOpacity={0.4}>MOLECULAR SYNTHESIS</Text>
       
-      {/* Render base selected items in a visible grid spread across the scene */}
-      {selectedItems.map((symbol, idx) => {
-        const col = idx % 5;
-        const row = Math.floor(idx / 5);
-        const pos: [number, number, number] = [(col - 2) * 2.5, 1.5 - row * 2.5, 0];
-        return <Atom key={`base-${symbol}-${idx}`} symbol={symbol} position={pos} />;
-      })}
-
       {/* Render dynamically placed elements */}
       {activeElements?.map((el) => (
-        <Atom key={el.id} symbol={el.symbol} position={el.position} />
+        <Atom key={el.id} id={el.id} symbol={el.symbol} position={el.position} />
+      ))}
+
+      {/* Render holographic bonds */}
+      {bonds?.map((bond) => (
+        <MolecularBond key={bond.id} fromId={bond.fromId} toId={bond.toId} />
       ))}
 
       {selectedItems.length === 0 && activeElements?.length === 0 && (
@@ -121,7 +134,6 @@ export const ChemistryScene: React.FC = () => {
         </Html>
       )}
 
-      <ParameterControl label="Reaction Energy" value={chemistryParams.temperature} onIncrease={() => setChemistryParam('temperature', chemistryParams.temperature + 5)} onDecrease={() => setChemistryParam('temperature', chemistryParams.temperature - 5)} />
       <ContactShadows position={[0, -2.5, 0]} opacity={0.5} scale={20} blur={2.5} />
     </group>
   );
