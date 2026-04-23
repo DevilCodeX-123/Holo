@@ -392,6 +392,7 @@ interface Props {
   fixedUnitSize?: boolean
   pointsCount?: number
   isRealistic?: boolean
+  hideLabel?: boolean
 }
 
 export const QuantumAtom: React.FC<Props> = ({ 
@@ -401,7 +402,8 @@ export const QuantumAtom: React.FC<Props> = ({
   scale = 1,
   fixedUnitSize = false,
   pointsCount = 600,
-  isRealistic = true // Default to true based on user request
+  isRealistic = true, // Default to true based on user request
+  hideLabel = false
 }) => {
   const Z = atomicNumber
   const N = getNeutrons(Z)
@@ -409,7 +411,7 @@ export const QuantumAtom: React.FC<Props> = ({
 
   // a0 = visual Bohr radius unit. 
   // shrunk significantly to allow multiple atoms to be placed for reactions
-  const a0 = (fixedUnitSize ? 0.04 : (0.08 / Math.pow(Z, 0.35))) * scale
+  const a0 = fixedUnitSize ? 0.04 : (0.08 / Math.pow(Z, 0.35));
 
   const groupRef = useRef<THREE.Group>(null)
   useFrame(({ clock }) => {
@@ -418,24 +420,26 @@ export const QuantumAtom: React.FC<Props> = ({
     }
   })
   return (
-    <group ref={groupRef} position={position}>
+    <group ref={groupRef} position={position} scale={scale}>
       {/* Nucleus - High Fidelity labels & forge */}
       <NucleusGroup protons={Z} neutrons={N} />
 
       {/* Main Symbol Label */}
-      <Billboard position={[0, 1.2, 0]}>
-        <DreiText
-          fontSize={0.3}
-          color="#00f2ff"
-          anchorX="center"
-          anchorY="middle"
-          font="/fonts/Inter-Bold.ttf"
-          outlineWidth={0.02}
-          outlineColor="#000"
-        >
-          {symbol}
-        </DreiText>
-      </Billboard>
+      {!hideLabel && (
+        <Billboard position={[0, 1.2, 0]}>
+          <DreiText
+            fontSize={0.3}
+            color="#00f2ff"
+            anchorX="center"
+            anchorY="middle"
+            font="/fonts/Inter-Bold.ttf"
+            outlineWidth={0.02}
+            outlineColor="#000"
+          >
+            {symbol}
+          </DreiText>
+        </Billboard>
+      )}
 
       {/* Electrons & Atmosphere */}
       {isRealistic ? (

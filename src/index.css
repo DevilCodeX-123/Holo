@@ -10,7 +10,9 @@ body {
   margin: 0;
   overflow: hidden;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  background-color: #000;
+  background-color: #121318; /* surface background */
+  color: #e3e1e9; /* on-surface text */
+  @apply overflow-hidden selection:bg-[#00f3ff] selection:text-[#006b71];
 }
 
 canvas {
@@ -66,4 +68,83 @@ canvas {
     transform: translate(-50%, -50%) scale(2.5);
     opacity: 0;
   }
+}
+
+/* =========================================
+   HOLOLAB PREMIUM UI THEME - CSS TOKENS 
+   ========================================= */
+
+/* Glass & Bevel Effects */
+.glass-bevel {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
+    border-top: 1px solid rgba(0,243,255,0.3);
+    border-left: 1px solid rgba(0,243,255,0.3);
+    border-bottom: 1px solid rgba(0,0,0,0.5);
+    border-right: 1px solid rgba(0,0,0,0.5);
+}
+.glass-bezel {
+    box-shadow: inset 1px 1px 0px rgba(0, 243, 255, 0.3), inset -1px -1px 0px rgba(0, 243, 255, 0.1);
+}
+.glass-morphic-edge {
+    box-shadow: inset 0 1px 0 0 rgba(0, 243, 255, 0.3);
+}
+.glass-beveled {
+    border-top: 1px solid rgba(0, 243, 255, 0.3);
+    border-left: 1px solid rgba(0, 243, 255, 0.2);
+    box-shadow: inset -1px -1px 1px rgba(0, 243, 255, 0.1);
+}
+
+/* Glow & Bloom Utilities */
+.bloom-effect { box-shadow: 0 0 20px rgba(0,243,255,0.4); }
+.bloom-cyan { filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.6)); }
+.mag-pulse { box-shadow: 0 0 30px rgba(254,0,254,0.3); }
+.glow-cyan { filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.6)); }
+.glow-magenta { filter: drop-shadow(0 0 12px rgba(254, 0, 254, 0.8)); }
+.drop-shadow-glow { filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.8)); }
+
+/* Grid & Layout Utilities */
+.periodic-grid {
+    display: grid;
+    grid-template-columns: repeat(18, minmax(0, 1fr));
+    gap: 4px;
+}
+.magnetic-line {
+    background: repeating-linear-gradient(90deg, transparent, rgba(0,243,255,0.4) 10px, transparent 20px);
+}
+
+/* Scanlines & Animations */
+@keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(1000%); }
+}
+.scanner-line {
+    animation: scanline 4s linear infinite;
+}
+.data-scanner-line {
+    background: linear-gradient(to right, transparent, rgba(0, 243, 255, 0.5), transparent);
+}
+.scanning-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00f3ff, transparent);
+    animation: scan 3s linear infinite;
+}
+@keyframes scan {
+    0% { transform: translateY(-20px); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateY(300px); opacity: 0; }
+}
+
+/* Atom / Orbital Visuals */
+.orbital-path {
+    border: 1px solid rgba(0, 243, 255, 0.1);
+    border-radius: 50%;
+    position: absolute;
+}
+.atom-core-pulse {
+    background: radial-gradient(circle, #fe00fe 0%, #500050 70%, transparent 100%);
+}
+
+/* Material Symbols Adjustments */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

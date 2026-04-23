@@ -29,9 +29,11 @@ export const InventoryAtom: React.FC<Props> = ({ symbol }) => {
             atomicNumber={Z} 
             symbol={symbol} 
             position={[0, 0, 0]} 
-            scale={0.9} 
+            scale={5} 
             fixedUnitSize={true} 
-            pointsCount={100}   
+            pointsCount={80}   
+            isRealistic={true}
+            hideLabel={true}
           />
         </Suspense>
       </View>
