@@ -61,25 +61,8 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({ onSelectTopic }) =
       {/* Background Grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(rgba(0, 243, 255, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.5) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
-      {/* ── TOP NAV (Matches Holo 5.jpeg) ── */}
-      <header className="w-full flex justify-between items-center px-10 py-6 border-b border-[#00f3ff]/10 bg-[#0A1014]/80 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <span className="text-2xl font-black text-[#00f3ff] drop-shadow-[0_0_8px_rgba(0,243,255,0.6)] font-display-lg uppercase tracking-widest">HOLOLAB</span>
-          <div className="h-5 w-[1px] bg-[#00f3ff]/20"></div>
-          <span className="font-mono-data text-xs text-[#00f3ff]/50 uppercase tracking-widest">PHYSICS HUB</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <span className="material-symbols-outlined text-[#00f3ff]/50">pan_tool</span>
-          <span className="material-symbols-outlined text-[#00f3ff]/50">sensors</span>
-          <span className="material-symbols-outlined text-[#00f3ff]/50">account_circle</span>
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#fe00fe]/10 border border-[#fe00fe]/30 rounded-full">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#fe00fe] shadow-[0_0_10px_#fe00fe] animate-pulse"></div>
-            <span className="font-mono-data text-[9px] text-[#fe00fe] uppercase tracking-widest">AI_STATE_PULSE</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex px-16 py-12 gap-12 overflow-y-auto">
+      {/* Main Content Area */}
+      <main className="flex-1 flex px-16 py-12 gap-12 overflow-y-auto mt-24 pb-32">
         {/* Left Area (Header + Grid) */}
         <div className="flex-1 flex flex-col">
           <div className="mb-10">
@@ -159,24 +142,6 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({ onSelectTopic }) =
         </aside>
       </main>
       
-      {/* ── BOTTOM DOCK (Match Holo 5) ── */}
-      <nav className="w-full h-24 bg-gradient-to-t from-black via-[#0A0D14]/90 to-transparent flex justify-center items-end pb-6">
-        <div className="flex gap-16">
-          {[
-            { id: 'workspace', icon: 'science', label: 'WORKSPACE' },
-            { id: 'synthesis', icon: 'cyclone', label: 'SYNTHESIS' },
-            { id: 'physics', icon: 'bolt', label: 'PHYSICS', active: true },
-            { id: 'elements', icon: 'grid_view', label: 'ELEMENTS' }
-          ].map(tab => (
-            <div key={tab.id} className="flex flex-col items-center gap-2">
-              <div className={`w-14 h-12 flex items-center justify-center rounded-lg transition-all ${tab.active ? 'border border-[#00f3ff]/50 bg-[#00f3ff]/10 shadow-[0_0_15px_rgba(0,243,255,0.2)]' : 'border border-transparent'}`}>
-                <span className={`material-symbols-outlined ${tab.active ? 'text-[#00f3ff]' : 'text-[#00f3ff]/30'}`}>{tab.icon}</span>
-              </div>
-              <span className={`font-mono-data text-[8px] uppercase tracking-widest ${tab.active ? 'text-[#00f3ff]' : 'text-[#00f3ff]/30'}`}>{tab.label}</span>
-            </div>
-          ))}
-        </div>
-      </nav>
     </motion.div>
   );
 };

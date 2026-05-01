@@ -2,39 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHoloStore } from '../../store/useHoloStore';
 
-// We'll use a subset to perfectly match the Holo 1 image layout, or keep the full one with matching styles.
-// The image shows exactly:
-// Row 1: H (1) ........................................ He (2)
-// Row 2: Li(3), Be(4) ........................ B(5), C(6), N(7)
-// Row 3: ........O(8), F(9), Ne(10), Na(11), Mg(12) ... Al(13), Si(14), P(15)
-// Row 4: S(16), Cl(17), Ar(18)
-// This is a very custom compact grid. I will recreate it exactly as shown for the exact match.
+const CATEGORIES = [
+  { id: 'ALL', label: '00. ALL_ELEMENTS', color: '#ffffff' },
+  { id: 'ALKALI_METALS', label: '01. ALKALI_METALS', color: '#ff3366' },
+  { id: 'ALKALINE_EARTH', label: '02. ALKALINE_EARTH', color: '#ff9933' },
+  { id: 'TRANSITION_METALS', label: '03. TRANSITION_METALS', color: '#ffcc00' },
+  { id: 'POST_TRANSITION', label: '04. POST_TRANSITION', color: '#33cc33' },
+  { id: 'METALLOIDS', label: '05. METALLOIDS', color: '#3399ff' },
+  { id: 'NON_METALS', label: '06. NON_METALS', color: '#00f3ff' },
+  { id: 'HALOGENS', label: '07. HALOGENS', color: '#9933ff' },
+  { id: 'NOBLE_GASES', label: '08. NOBLE_GASES', color: '#fe00fe' },
+];
 
-const HOLO1_ELEMENTS = [
-  { n: 1,  sym: 'H',  group: 1,  row: 1, color: '#00f3ff' }, // cyan
-  { n: 2,  sym: 'He', group: 8,  row: 1, color: '#fe00fe' }, // purple
-  
-  { n: 3,  sym: 'Li', group: 9,  row: 1, color: '#00f3ff' }, // cyan
-  { n: 4,  sym: 'Be', group: 10, row: 1, color: '#00f3ff' }, // cyan
-
-  { n: 8,  sym: 'O',  group: 1,  row: 2, color: '#36fd0f' }, // green
-  { n: 9,  sym: 'F',  group: 2,  row: 2, color: '#36fd0f' }, // green
-  { n: 10, sym: 'Ne', group: 8,  row: 2, color: '#fe00fe' }, // purple
-  { n: 11, sym: 'Na', group: 9,  row: 2, color: '#00f3ff' }, // cyan
-  { n: 12, sym: 'Mg', group: 10, row: 2, color: '#00f3ff' }, // cyan
-
-  { n: 16, sym: 'S',  group: 1,  row: 3, color: '#36fd0f' }, // green
-  { n: 17, sym: 'Cl', group: 2,  row: 3, color: '#36fd0f' }, // green
-  { n: 18, sym: 'Ar', group: 8,  row: 3, color: '#fe00fe' }, // purple
-
-  // Right side block
-  { n: 5,  sym: 'B',  group: 20, row: 1, color: '#36fd0f' }, // green
-  { n: 6,  sym: 'C',  group: 21, row: 1, color: '#36fd0f' }, // green
-  { n: 7,  sym: 'N',  group: 22, row: 1, color: '#36fd0f' }, // green
-
-  { n: 13, sym: 'Al', group: 20, row: 2, color: '#36fd0f' }, // green
-  { n: 14, sym: 'Si', group: 21, row: 2, color: '#36fd0f' }, // green
-  { n: 15, sym: 'P',  group: 22, row: 2, color: '#36fd0f' }, // green
+const ELEMENTS_DATA = [
+  { n: 1,  sym: 'H',  group: 1,  row: 1, cat: 'NON_METALS' },
+  { n: 2,  sym: 'He', group: 18, row: 1, cat: 'NOBLE_GASES' },
+  { n: 3,  sym: 'Li', group: 1,  row: 2, cat: 'ALKALI_METALS' },
+  { n: 4,  sym: 'Be', group: 2,  row: 2, cat: 'ALKALINE_EARTH' },
+  { n: 5,  sym: 'B',  group: 13, row: 2, cat: 'METALLOIDS' },
+  { n: 6,  sym: 'C',  group: 14, row: 2, cat: 'NON_METALS' },
+  { n: 7,  sym: 'N',  group: 15, row: 2, cat: 'NON_METALS' },
+  { n: 8,  sym: 'O',  group: 16, row: 2, cat: 'NON_METALS' },
+  { n: 9,  sym: 'F',  group: 17, row: 2, cat: 'HALOGENS' },
+  { n: 10, sym: 'Ne', group: 18, row: 2, cat: 'NOBLE_GASES' },
+  { n: 11, sym: 'Na', group: 1,  row: 3, cat: 'ALKALI_METALS' },
+  { n: 12, sym: 'Mg', group: 2,  row: 3, cat: 'ALKALINE_EARTH' },
+  { n: 13, sym: 'Al', group: 13, row: 3, cat: 'POST_TRANSITION' },
+  { n: 14, sym: 'Si', group: 14, row: 3, cat: 'METALLOIDS' },
+  { n: 15, sym: 'P',  group: 15, row: 3, cat: 'NON_METALS' },
+  { n: 16, sym: 'S',  group: 16, row: 3, cat: 'NON_METALS' },
+  { n: 17, sym: 'Cl', group: 17, row: 3, cat: 'HALOGENS' },
+  { n: 18, sym: 'Ar', group: 18, row: 3, cat: 'NOBLE_GASES' },
+  { n: 19, sym: 'K',  group: 1,  row: 4, cat: 'ALKALI_METALS' },
+  { n: 20, sym: 'Ca', group: 2,  row: 4, cat: 'ALKALINE_EARTH' },
+  { n: 21, sym: 'Sc', group: 3,  row: 4, cat: 'TRANSITION_METALS' },
+  { n: 22, sym: 'Ti', group: 4,  row: 4, cat: 'TRANSITION_METALS' },
+  { n: 26, sym: 'Fe', group: 8,  row: 4, cat: 'TRANSITION_METALS' },
+  { n: 29, sym: 'Cu', group: 11, row: 4, cat: 'TRANSITION_METALS' },
+  { n: 30, sym: 'Zn', group: 12, row: 4, cat: 'TRANSITION_METALS' },
+  { n: 31, sym: 'Ga', group: 13, row: 4, cat: 'POST_TRANSITION' },
+  { n: 35, sym: 'Br', group: 17, row: 4, cat: 'HALOGENS' },
+  { n: 36, sym: 'Kr', group: 18, row: 4, cat: 'NOBLE_GASES' },
 ];
 
 interface PeriodicTableProps { 
@@ -45,7 +53,7 @@ interface PeriodicTableProps {
 export const PeriodicTable: React.FC<PeriodicTableProps> = ({ onClose, onSelect }) => {
   const { addItem, allHands, addActiveElement } = useHoloStore();
   const [hovered, setHovered] = useState<string | null>(null);
-  const [selectedCat, setSelectedCat] = useState<string>('01. ALKALI_METALS');
+  const [selectedCat, setSelectedCat] = useState<string>('ALL');
 
   // Pinch to select hovered element
   useEffect(() => {
@@ -60,6 +68,10 @@ export const PeriodicTable: React.FC<PeriodicTableProps> = ({ onClose, onSelect 
     addItem(sym);
     addActiveElement(sym, [0, 0, 0]);
     if (onSelect) onSelect(sym);
+  };
+
+  const getCategoryColor = (catId: string) => {
+    return CATEGORIES.find(c => c.id === catId)?.color || '#ffffff';
   };
 
   return (
@@ -116,65 +128,71 @@ export const PeriodicTable: React.FC<PeriodicTableProps> = ({ onClose, onSelect 
           </div>
 
           {/* Filters */}
-          <div className="mt-8 px-6">
+          <div className="mt-8 px-6 overflow-y-auto pb-6">
             <span className="font-mono-data text-[8px] text-[#00f3ff]/40 uppercase tracking-widest mb-4 block">CLASSIFICATION_FILTERS</span>
             <div className="flex flex-col gap-2">
-              {[
-                '01. ALKALI_METALS',
-                '02. NOBLE_GASES',
-                '03. LANTHANIDES',
-                '04. HALOGENS'
-              ].map((filter) => (
+              {CATEGORIES.map((cat) => (
                 <button 
-                  key={filter}
-                  onClick={() => setSelectedCat(filter)}
+                  key={cat.id}
+                  onClick={() => setSelectedCat(cat.id)}
                   className={`w-full text-left p-3 border transition-all ${
-                    selectedCat === filter 
-                      ? 'border-[#00f3ff]/50 bg-[#00f3ff]/10 text-[#00f3ff]' 
+                    selectedCat === cat.id 
+                      ? 'bg-opacity-20 text-white' 
                       : 'border-transparent text-white/60 hover:text-white hover:border-white/10'
                   }`}
+                  style={{
+                    borderColor: selectedCat === cat.id ? cat.color : 'transparent',
+                    backgroundColor: selectedCat === cat.id ? `${cat.color}20` : 'transparent',
+                  }}
                 >
-                  <span className="font-mono-data text-[10px] uppercase tracking-widest">{filter}</span>
+                  <span className="font-mono-data text-[10px] uppercase tracking-widest" style={{ color: selectedCat === cat.id ? cat.color : 'inherit' }}>{cat.label}</span>
                 </button>
               ))}
             </div>
           </div>
         </aside>
 
-        {/* ── MAIN GRID (Perfect Recreation of Holo 1.jpeg layout) ── */}
-        <main className="flex-1 relative flex items-center justify-center p-12 bg-[#0E151A]">
+        {/* ── MAIN GRID ── */}
+        <main className="flex-1 relative flex flex-col items-center justify-center p-12 bg-[#0E151A]">
           {/* AI Scanner Top Right */}
           <div className="absolute top-10 right-10 flex flex-col items-center gap-2">
             <div className="w-4 h-4 rounded-full bg-[#fe00fe] shadow-[0_0_15px_#fe00fe] animate-pulse"></div>
             <span className="font-mono-data text-[7px] text-[#fe00fe] tracking-widest">AI_ACTIVE_SCAN</span>
           </div>
 
-          <div className="relative w-full max-w-4xl h-96 border-t border-[#1A2C34] pt-12">
-            <div className="grid grid-cols-24 gap-1 relative">
-              {HOLO1_ELEMENTS.map((el) => (
-                <motion.button
-                  key={el.sym}
-                  onClick={() => handleSelect(el.sym)}
-                  onMouseEnter={() => setHovered(el.sym)}
-                  onMouseLeave={() => setHovered(null)}
-                  className="w-14 h-16 flex flex-col items-center justify-center relative bg-[#0D181D]/80 border hover:bg-[#00f3ff]/10 transition-all group"
-                  style={{ 
-                    gridColumnStart: el.group, 
-                    gridRowStart: el.row,
-                    borderColor: el.color + '50', // 50% opacity border
-                    boxShadow: hovered === el.sym ? `inset 0 0 10px ${el.color}40` : 'none'
-                  }}
-                >
-                  <span className="absolute top-1 left-1.5 font-mono-data text-[8px] text-white/40">{el.n}</span>
-                  <span className="font-display-lg text-xl text-white group-hover:scale-110 transition-transform">{el.sym}</span>
-                </motion.button>
-              ))}
+          <div className="relative w-full max-w-5xl">
+            {/* Standard 18-column grid */}
+            <div className="grid grid-cols-18 gap-2 relative">
+              {ELEMENTS_DATA.map((el) => {
+                const isSelected = selectedCat === 'ALL' || selectedCat === el.cat;
+                const elColor = getCategoryColor(el.cat);
+                
+                return (
+                  <motion.button
+                    key={el.sym}
+                    onClick={() => isSelected && handleSelect(el.sym)}
+                    onMouseEnter={() => setHovered(el.sym)}
+                    onMouseLeave={() => setHovered(null)}
+                    className={`w-12 h-14 flex flex-col items-center justify-center relative bg-[#0D181D]/80 border transition-all group ${!isSelected ? 'opacity-20 grayscale pointer-events-none' : 'hover:scale-110 z-10'}`}
+                    style={{ 
+                      gridColumnStart: el.group, 
+                      gridRowStart: el.row,
+                      borderColor: isSelected ? `${elColor}50` : '#333',
+                      boxShadow: hovered === el.sym && isSelected ? `0 0 15px ${elColor}60, inset 0 0 10px ${elColor}40` : 'none',
+                      backgroundColor: hovered === el.sym && isSelected ? `${elColor}20` : '#0D181D80'
+                    }}
+                  >
+                    <span className="absolute top-1 left-1.5 font-mono-data text-[7px] text-white/50">{el.n}</span>
+                    <span className="font-display-lg text-lg text-white" style={{ color: isSelected ? '#fff' : '#888' }}>{el.sym}</span>
+                  </motion.button>
+                );
+              })}
             </div>
             
             {/* Background Text Overlay */}
-            <div className="absolute left-[30%] bottom-10 font-mono-data text-[7px] text-white/10 tracking-[0.3em] uppercase">
+            <div className="absolute left-[20%] -bottom-16 font-mono-data text-[7px] text-white/10 tracking-[0.3em] uppercase">
               SYSTEM_RENDERING_LOWER_ORBITALS<br/>
-              TRANSITION_METALS_EXPANDED
+              DYNAMIC_FILTERING_ACTIVE
             </div>
           </div>
         </main>

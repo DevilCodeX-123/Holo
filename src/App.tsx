@@ -31,6 +31,8 @@ const App: React.FC = () => {
   const setTemperature = useHoloStore(state => state.setTemperature);
   const pressure = useHoloStore(state => state.pressure);
   const setPressure = useHoloStore(state => state.setPressure);
+  const selectedTopic = useHoloStore(state => state.selectedTopic);
+  const setSelectedTopic = useHoloStore(state => state.setSelectedTopic);
 
   const [activeTab, setActiveTab] = useState<'workspace' | 'synthesis' | 'physics' | 'elements'>('workspace')
   const [isElementsOpen, setIsElementsOpen] = useState(false)
@@ -65,6 +67,11 @@ const App: React.FC = () => {
           <PeriodicTable onClose={() => setIsElementsOpen(false)} onSelect={(sym) => { setSelectedAtom(sym); setIsElementsOpen(false); }} />
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {activeTab === 'physics' && !selectedTopic && (
+          <TopicSelector onSelectTopic={(topicId) => setSelectedTopic(topicId)} />
+        )}
+      </AnimatePresence>
 
       {!isLanding && (
         <View className="absolute inset-0 pointer-events-none z-10">
@@ -93,6 +100,15 @@ const App: React.FC = () => {
           {/* ── TOP BAR ── */}
           <header className="absolute top-0 left-0 w-full flex justify-between items-center px-10 py-6 pointer-events-auto">
             <div className="flex items-center gap-4">
+              {activeTab === 'physics' && selectedTopic ? (
+                <button 
+                  onClick={() => setSelectedTopic(null)}
+                  className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors border border-cyan-400/20 px-3 py-1.5 rounded bg-cyan-900/20"
+                >
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                  <span className="font-mono-data text-xs uppercase tracking-widest">MODULES</span>
+                </button>
+              ) : null}
               <span className="text-2xl font-black text-cyan-400 drop-shadow-[0_0_8px_rgba(0,243,255,0.6)] font-display-lg uppercase tracking-widest">HOLOLAB</span>
               <div className="h-5 w-[1px] bg-cyan-400/20"></div>
               <span className="font-mono-data text-xs text-cyan-400/50 uppercase tracking-widest">

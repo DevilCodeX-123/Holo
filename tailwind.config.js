@@ -62,6 +62,9 @@ export default {
         "outline": "#849495",
         "secondary-fixed": "#ffd7f5"
       },
+      gridTemplateColumns: {
+        '18': 'repeat(18, minmax(0, 1fr))',
+      },
       borderRadius: {
         "DEFAULT": "0.125rem",
         "lg": "0.25rem",
